@@ -294,7 +294,7 @@
 </div>
 
 <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzuHpgIwnsqPbc8_KNHtDWihTESgDYwS_VahgDt7FDGpGnTkvGICb1d19zqL83vtKdZjQ/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmR7Z5GfLb2-zJd9R1YK-VQI7VmdBqkFx3qfoWxxAx9svYVHL6sNXgLlneJR99J6rYjw/exec";
 
     const unitDropdownHTML = `
         <select class="unit-select text-center" onchange="checkCustomUnit(this)">
@@ -502,4 +502,259 @@
     }
 
     function toggleDate() {
-        const dateInput = document.
+        const dateInput = document.getElementById('doc-date');
+        const isBlank = document.getElementById('blank-date').checked;
+        if (isBlank) { dateInput.dataset.savedDate = dateInput.value; dateInput.value = ""; } 
+        else { dateInput.value = dateInput.dataset.savedDate || getTodayThai(); }
+    }
+
+    function updateRowNumbers() {
+        const rows = document.querySelectorAll('#items-body tr');
+        rows.forEach((row, index) => { row.querySelector('.row-number').innerText = index + 1; });
+    }
+
+    function calculateTotal() {
+        let subtotal = 0;
+        const rows = document.querySelectorAll('#items-body tr');
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty').value) || 0;
+            const price = parseFloat(row.querySelector('.price').value) || 0;
+            const total = qty * price;
+            row.querySelector('.row-total').innerText = total.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            subtotal += total;
+        });
+        document.getElementById('subtotal').innerText = subtotal.toLocaleString('th-TH', {minimumFractionDigits: 2});
+        document.getElementById('grand-total').innerText = subtotal.toLocaleString('th-TH', {minimumFractionDigits: 2});
+    }
+
+    function addRow(data = null) {
+        const tbody = document.getElementById('items-body');
+        const tr = document.createElement('tr');
+        tr.className = 'item-row';
+        
+        const desc = data ? data.desc : '';
+        const qty = data ? data.qty : 1;
+        const unit = data ? data.unit : 'ตัว';
+        const price = data ? data.price : 0;
+
+        tr.innerHTML = `
+            <td class="no-print text-center drag-handle" title="คลิกค้างเพื่อลาก">⋮⋮</td>
+            <td class="no-print text-center"><button class="btn btn-del" onclick="deleteRow(this)">ลบ</button></td>
+            <td class="text-center row-number"></td>
+            <td><div contenteditable="true" class="editable-desc" data-placeholder="ระบุรายละเอียด...">${desc}</div></td>
+            <td><input type="number" class="qty text-center" value="${qty}" min="1" oninput="calculateTotal()"></td>
+            <td>${unitDropdownHTML}</td>
+            <td><input type="number" class="price text-right" value="${price}" min="0" oninput="calculateTotal()"></td>
+            <td class="text-right row-total" style="padding-top: 14px;">0.00</td>
+        `;
+        tbody.appendChild(tr);
+        
+        const unitSelect = tr.querySelector('.unit-select');
+        
+        if (data && unit) {
+            let hasUnit = false;
+            for (let i = 0; i < unitSelect.options.length; i++) {
+                if (unitSelect.options[i].value === unit) {
+                    hasUnit = true;
+                    break;
+                }
+            }
+            if (!hasUnit) {
+                const opt = document.createElement("option");
+                opt.value = unit;
+                opt.textContent = unit;
+                unitSelect.insertBefore(opt, unitSelect.options[unitSelect.options.length - 1]);
+            }
+        }
+        
+        unitSelect.value = unit;
+
+        attachDragEvents(tr);
+        updateRowNumbers(); 
+        calculateTotal();
+        
+        if(!data) tr.querySelector('.editable-desc').focus();
+    }
+
+    function deleteRow(button) { button.closest('tr').remove(); updateRowNumbers(); calculateTotal(); }
+
+    let draggedRow = null;
+    const tbody = document.getElementById('items-body');
+
+    function attachDragEvents(tr) {
+        const handle = tr.querySelector('.drag-handle');
+        handle.addEventListener('mouseenter', () => tr.setAttribute('draggable', 'true'));
+        handle.addEventListener('mouseleave', () => tr.removeAttribute('draggable'));
+        
+        tr.addEventListener('dragstart', (e) => {
+            draggedRow = tr;
+            setTimeout(() => tr.classList.add('dragging'), 0);
+        });
+        tr.addEventListener('dragend', () => {
+            tr.classList.remove('dragging'); draggedRow = null; updateRowNumbers();
+        });
+    }
+
+    tbody.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!draggedRow) return;
+        const afterElement = getDragAfterElement(tbody, e.clientY);
+        if (afterElement == null) { tbody.appendChild(draggedRow); } 
+        else { tbody.insertBefore(draggedRow, afterElement); }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.item-row:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } 
+            else { return closest; }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function saveData() {
+        const data = {
+            docType: document.getElementById('docType').innerText,
+            docNum: document.getElementById('doc-num').value,
+            docDate: document.getElementById('doc-date').value,
+            dueDate: document.getElementById('due-date').value,
+            customerName: document.getElementById('customer-name').value,
+            customerAddress: document.getElementById('customer-address').value,
+            incVat: false,
+            items: []
+        };
+
+        document.querySelectorAll('#items-body tr').forEach(tr => {
+            data.items.push({
+                desc: tr.querySelector('.editable-desc').innerText,
+                qty: tr.querySelector('.qty').value,
+                unit: tr.querySelector('.unit-select').value,
+                price: tr.querySelector('.price').value
+            });
+        });
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", (data.docNum || "Document") + "_SaveData.json");
+        document.body.appendChild(dlAnchorElem);
+        dlAnchorElem.click();
+        dlAnchorElem.remove();
+        alert("บันทึกไฟล์งานสำเร็จ!");
+    }
+
+    function loadData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                document.getElementById('docType').innerText = data.docType || "ใบเสนอราคา";
+                document.getElementById('doc-num').value = data.docNum || "";
+                document.getElementById('doc-date').value = data.docDate || "";
+                document.getElementById('due-date').value = data.dueDate || "";
+                document.getElementById('customer-name').value = data.customerName || "";
+                document.getElementById('customer-address').value = data.customerAddress || "";
+
+                const tbody = document.getElementById('items-body');
+                tbody.innerHTML = '';
+                
+                if(data.items && data.items.length > 0) {
+                    data.items.forEach(item => addRow(item));
+                } else {
+                    addRow(); 
+                }
+                updateDocTypeSync();
+                calculateTotal();
+            } catch (err) {
+                alert("ไฟล์ไม่ถูกต้อง หรือเสียหายครับ");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; 
+    }
+
+    function exportToExcel() {
+        if (typeof XLSX === 'undefined') {
+            alert('กำลังโหลดข้อมูลสำหรับการสร้าง Excel กรุณารอสักครู่แล้วกดใหม่อีกครั้ง');
+            return;
+        }
+
+        const docType = document.getElementById('docType').innerText;
+        const docNum = document.getElementById('doc-num').value;
+        const docDate = document.getElementById('doc-date').value;
+        const dueDate = document.getElementById('due-date').value;
+        const customerName = document.getElementById('customer-name').value;
+        const customerAddress = document.getElementById('customer-address').value;
+
+        let excelData = [];
+        
+        excelData.push(["JN electric&Technology"]);
+        excelData.push([docType]);
+        excelData.push([]);
+        excelData.push(["ลูกค้า (BILL TO):", customerName]);
+        excelData.push(["ที่อยู่:", customerAddress]);
+        excelData.push(["เลขที่เอกสาร:", docNum, "วันที่:", docDate]);
+        if(dueDate) excelData.push(["ครบกำหนด:", dueDate]);
+        
+        excelData.push([]);
+
+        excelData.push(["ลำดับ", "รายการ", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]);
+
+        const rows = document.querySelectorAll('#items-body tr');
+        let index = 1;
+        rows.forEach(tr => {
+            const desc = tr.querySelector('.editable-desc').innerText;
+            const qty = parseFloat(tr.querySelector('.qty').value) || 0;
+            const unit = tr.querySelector('.unit-select').value;
+            const price = parseFloat(tr.querySelector('.price').value) || 0;
+            const total = qty * price;
+            
+            excelData.push([index++, desc, qty, unit, price, total]);
+        });
+
+        const grandTotal = document.getElementById('grand-total').innerText.replace(/,/g, '');
+        excelData.push([]);
+        excelData.push(["", "", "", "", "ยอดชำระสุทธิ (TOTAL)", parseFloat(grandTotal)]);
+
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        ws['!cols'] = [
+            { wch: 8 },  
+            { wch: 40 }, 
+            { wch: 10 }, 
+            { wch: 10 }, 
+            { wch: 15 }, 
+            { wch: 15 }  
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Document");
+
+        const fileName = (docNum || "Document") + ".xlsx";
+        XLSX.writeFile(wb, fileName);
+    }
+
+    window.onload = function() {
+        checkSession();
+        
+        document.getElementById('doc-date').value = getTodayThai();
+        if(document.getElementById('docType').innerText.trim() === "...") {
+            document.getElementById('docType').innerText = "ใบเสนอราคา";
+        }
+        
+        updateDocTypeSync(); 
+        addRow(); 
+        calculateTotal();
+
+        document.getElementById("pass-input").addEventListener("keypress", function(e){
+            if(e.key === "Enter") submitLogin();
+        });
+    };
+</script>
+
+</body>
+</html>
