@@ -133,7 +133,7 @@
 
         .footer-signatures { display: flex; justify-content: space-between; margin-top: 60px; text-align: center; }
         .signature-box { width: 35%; }
-        .signature-line { border-bottom: 1px solid var(--text-main); margin: 40px auto 10px; width: 100%; }
+        .signature-line { border-bottom: 1px solid var(--text-main); margin: 40px auto 10px; width: 100%; limit: 100%; }
         
         .toggle-box { cursor: pointer; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500;}
         .toggle-box input { width: auto; transform: scale(1.1); cursor: pointer; margin: 0; }
@@ -294,8 +294,8 @@
 </div>
 
 <script>
-    // วาง URL ของ Google Apps Script ที่ได้จาก New Deployment ที่นี่ครับ
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmR7Z5GfLb2-zJd9R1YK-VQI7VmdBqkFx3qfoWxxAx9svYVHL6sNXgLlneJR99J6rYjw/exec";
+    // วาง URL ของ Google Apps Script ที่ได้จาก New Deployment เรียบร้อยแล้วครับ
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzuHpgIwnsqPbc8_KNHtDWihTESgDYwS_VahgDt7FDGpGnTkvGICb1d19zqL83vtKdZjQ/exec";
 
     const unitDropdownHTML = `
         <select class="unit-select text-center" onchange="checkCustomUnit(this)">
@@ -326,7 +326,7 @@
         </select>
     `;
 
-    // --- ส่วนระบบรักษาเซสชันและการตรวจสอบล็อกอิน (เพิ่มใหม่เพื่อความปลอดภัย) ---
+    // --- ส่วนระบบรักษาเซสชันและการตรวจสอบล็อกอิน (อัปเดตแก้อาการ CORS) ---
     function checkSession() {
         const token = localStorage.getItem("jn_session_token");
         if (token) {
@@ -336,32 +336,21 @@
             return true;
         } else {
             document.getElementById("login-overlay").style.display = "flex";
-            document.getElementById("controls-panel").style.display = "none";
+            document.getElementById("controls-panel").style.none = "none";
             document.getElementById("main-app").style.display = "none";
             return false;
         }
     }
 
-    async function submitLogin() {
+    function submitLogin() {
         const password = document.getElementById("pass-input").value;
         if(!password) { alert("กรุณากรอกรหัสผ่านด้วยครับ"); return; }
         
-        try {
-            const res = await fetch(APPS_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", // ใช้ no-cors หรือเปิด CORS ที่ฝั่ง Apps script
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "login", password: password })
-            });
-            
-            // เนื่องจาก fetch ไปยัง Apps Script แบบข้ามโดเมนมักเกิดการ Redirect 
-            // วิธีแก้สถาปัตยกรรมแบบเสถียรที่สุดคือให้รับรหัสผ่านส่งผ่าน API แบบปกติ
-            // ในที่นี้เราจึงใช้การตรวจสอบกับ API หลังบ้านที่ปลอดภัยขึ้น
-        } catch(e) {}
-        
-        // ทางแก้แบบสมบูรณ์สำหรับ Apps script redirect (Fetch API handling)
         fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
             body: JSON.stringify({ action: "login", password: password })
         })
         .then(res => res.json())
@@ -375,6 +364,7 @@
         })
         .catch(err => {
             alert("เชื่อมต่อ API ล้มเหลว ตรวจสอบ URL ของ Apps Script หรือสิทธิ์การเข้าถึง");
+            console.error(err);
         });
     }
 
@@ -383,7 +373,7 @@
         checkSession();
     }
 
-    // --- ระบบซิงก์ข้อมูลออนไลน์ไปยัง Google Sheet (เพิ่มใหม่) ---
+    // --- ระบบซิงก์ข้อมูลออนไลน์ไปยัง Google Sheet (อัปเดตแก้อาการ CORS) ---
     function saveToCloud() {
         const token = localStorage.getItem("jn_session_token");
         const rawPayload = {
@@ -408,6 +398,9 @@
 
         fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
             body: JSON.stringify({ action: "save", token: token, data: rawPayload })
         })
         .then(res => res.json())
@@ -426,6 +419,9 @@
 
         fetch(APPS_SCRIPT_URL, {
             method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
             body: JSON.stringify({ action: "load", token: token, docNum: docNum })
         })
         .then(res => res.json())
