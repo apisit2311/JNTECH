@@ -487,4 +487,19 @@
         const docText = document.getElementById('docType').innerText;
         const subTitle = document.getElementById('docSubTitle');
         const sigLeft = document.getElementById('sig-left');
-        const sig
+        const sigRight = document.getElementById('sig-right');
+        
+        if (docText.includes("เสนอราคา")) {
+            subTitle.value = "(QUOTATION)";
+            sigLeft.value = "ผู้อนุมัติสั่งซื้อ"; sigRight.value = "ผู้เสนอราคา";
+        } else if (docText.includes("รับเงิน") || docText.includes("เสร็จ")) {
+            subTitle.value = "(RECEIPT)";
+            sigLeft.value = "ผู้ชำระเงิน"; sigRight.value = "ผู้รับเงิน";
+        } else {
+            subTitle.value = "(INVOICE)";
+            sigLeft.value = "ผู้รับสินค้า / บริการ"; sigRight.value = "ผู้ออกเอกสาร";
+        }
+    }
+
+    function toggleDate() {
+        const dateInput = document.
