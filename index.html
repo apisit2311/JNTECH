@@ -25,8 +25,7 @@
             --border-color: #cbd5e1;
         }
 
-        /* ปรับ padding-top เผื่อเนื้อหาไม่ให้โดนแถบเมนูด้านบนบัง */
-        body { font-family: 'Sarabun', sans-serif; color: var(--text-main); line-height: 1.5; background-color: var(--bg-color); padding: 80px 20px 30px; }
+        body { font-family: 'Sarabun', sans-serif; color: var(--text-main); line-height: 1.5; background-color: var(--bg-color); padding: 85px 20px 30px; }
         
         .document-container { 
             width: 210mm; 
@@ -91,7 +90,6 @@
             border-bottom: 1px solid var(--border-color); padding-bottom: 5px;
         }
         
-        /* สไตล์สำหรับโลโก้ */
         .company-logo {
             max-width: 120px; 
             height: auto;
@@ -117,21 +115,37 @@
         .btn-add { background-color: var(--primary-color); color: white; border-radius: 20px; padding: 8px 20px; box-shadow: 0 4px 6px rgba(30, 58, 138, 0.2);}
         .btn-del { background-color: #ef4444; color: white; padding: 4px 10px; font-size: 12px; margin-top: 4px; border-radius: 4px; }
         
-        /* ปรับปรุงเลย์เอาต์เมนูควบคุมใหม่: คาดยาวเต็มจอด้านบนสุดหน้าต่าง ไม่เบียดบังเนื้อหา */
+        /* ปรับปรุงเมนูบาร์ให้เต็มความกว้างด้านบนสุด และเพิ่มแถบค้นหา */
         .top-controls { 
             position: fixed; top: 0; left: 0; width: 100%; z-index: 100; 
             display: flex; gap: 8px; justify-content: center; align-items: center;
             background: #1e3a8a; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            box-sizing: border-box;
+            box-sizing: border-box; flex-wrap: wrap;
         }
         .top-controls .btn { padding: 6px 12px; font-size: 13px; border-radius: 4px; }
-        .btn-print { background-color: #3b82f6; color: white; }
+        .search-group { display: flex; align-items: center; gap: 4px; margin-right: 15px; }
+        .search-input { background: #fff !important; border: 1px solid #cbd5e1 !important; border-radius: 4px !important; width: 220px !important; padding: 6px 10px !important; font-size: 13px !important; height: 31px;}
+        
+        .btn-new-doc { background-color: #ec4899; color: white; } /* สีชมพูเน้นสร้างเอกสารใหม่ */
+        .btn-cloud-save { background-color: #06b6d4; color: white; }
         .btn-save { background-color: #f59e0b; color: white; }
         .btn-load { background-color: #8b5cf6; color: white; }
         .btn-excel { background-color: #10b981; color: white; } 
-        .btn-cloud-save { background-color: #06b6d4; color: white; }
-        .btn-cloud-load { background-color: #6366f1; color: white; }
-        .btn-logout { background-color: #ef4444; color: white; }
+        .btn-print { background-color: #3b82f6; color: white; }
+        .btn-logout { background-color: #64748b; color: white; }
+
+        /* สไตล์สำหรับป๊อปอัพรายการผลลัพธ์การค้นหา */
+        .search-popup {
+            display: none; position: fixed; top: 55px; left: 50%; transform: translateX(-50%);
+            background: white; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 90%; max-width: 650px; max-height: 400px; overflow-y: auto; z-index: 1000; padding: 15px;
+        }
+        .search-popup h3 { margin-top: 0; font-size: 16px; color: var(--primary-color); border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        .search-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .search-table th { background: #f8fafc; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; }
+        .search-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .search-table tr:hover td { background: #eff6ff; color: var(--primary-color); }
+        .popup-close { float: right; cursor: pointer; font-weight: bold; color: #ef4444; }
 
         /* สรุปยอด */
         .summary-section { display: flex; justify-content: flex-end; margin-bottom: 40px; margin-top: 10px; }
@@ -150,7 +164,6 @@
         .drag-handle:active { cursor: grabbing; color: var(--primary-color); }
         tr.dragging { opacity: 0.6; background-color: #eff6ff; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); }
 
-        /* สไตล์สำหรับกล่อง Login บังหน้าจอ */
         #login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.9); z-index: 10000;
@@ -186,7 +199,7 @@
             ::-webkit-input-placeholder { color: transparent !important; }
             ::placeholder { color: transparent !important; }
             .editable-desc:empty:before { color: transparent !important; }
-            #login-overlay { display: none !important; }
+            #login-overlay, .search-popup { display: none !important; }
         }
     </style>
 </head>
@@ -202,8 +215,12 @@
 </div>
 
 <div class="top-controls no-print" id="controls-panel" style="display: none;">
+    <div class="search-group">
+        <input type="text" id="search-query" class="search-input" placeholder="พิมพ์ชื่อลูกค้า หรือ เลขที่บิล...">
+        <button class="btn btn-print" onclick="searchFromCloud()">🔍 ค้นหา</button>
+    </div>
+    <button class="btn btn-new-doc" onclick="createNewDocument()">✨ ทำเอกสารใหม่</button>
     <button class="btn btn-cloud-save" onclick="saveToCloud()">☁️ บันทึกลงระบบคลาวด์</button>
-    <button class="btn btn-cloud-load" onclick="loadFromCloud()">☁️ ดึงจากคลาวด์</button>
     <button class="btn btn-save" onclick="saveData()">💾 บันทึกไฟล์งาน (JSON)</button>
     <button class="btn btn-load" onclick="document.getElementById('file-input').click()">📂 เปิดไฟล์งาน (JSON)</button>
     <input type="file" id="file-input" accept=".json" style="display: none;" onchange="loadData(event)">
@@ -212,11 +229,28 @@
     <button class="btn btn-logout" onclick="logout()">🚪 ออกระบบ</button>
 </div>
 
+<div id="search-popup-box" class="search-popup no-print">
+    <span class="popup-close" onclick="document.getElementById('search-popup-box').style.display='none'">❌ ปิด</span>
+    <h3>ผลการค้นหาเอกสารบนคลาวด์</h3>
+    <table class="search-table">
+        <thead>
+            <tr>
+                <th>เลขที่เอกสาร</th>
+                <th>ประเภท</th>
+                <th>ชื่อลูกค้า</th>
+                <th>ยอดเงินสุทธิ</th>
+            </tr>
+        </thead>
+        <tbody id="search-results-body">
+            </tbody>
+    </table>
+</div>
+
 <div class="document-container" id="main-app" style="display: none;">
     
     <div class="top-section">
         <div class="title-area">
-            <div contenteditable="true" class="doc-title-editable" id="docType" oninput="updateDocTypeSync()">...</div><br>
+            <div contenteditable="true" class="doc-title-editable" id="docType" oninput="updateDocTypeSync(true)">...</div><br>
             <input type="text" id="docSubTitle" style="text-align: left; font-weight: 600; border:none; color:var(--text-muted); font-size: 16px; padding: 0;" value="(QUOTATION)">
         </div>
         <div class="meta-area">
@@ -362,7 +396,6 @@
             if(data.success) {
                 localStorage.setItem("jn_session_token", data.token);
                 checkSession();
-                // เมื่อล็อกอินเสร็จ ให้ทำการดึงเลขที่เอกสารชุดแรกทันที
                 fetchNextDocNumber();
             } else {
                 alert(data.message);
@@ -378,13 +411,13 @@
         checkSession();
     }
 
-    // --- ฟังก์ชันดึงเลขที่เอกสารล่าสุดอัตโนมัติจากคลาวด์ ---
+    // ฟังก์ชันดึงเลขที่เอกสารชุดถัดไป
     function fetchNextDocNumber() {
         const token = localStorage.getItem("jn_session_token");
         if (!token) return;
 
         const docText = document.getElementById('docType').innerText;
-        let prefix = "QUO-CO"; // ค่าเริ่มต้น
+        let prefix = "QUO-CO"; 
         
         if (docText.includes("เสนอราคา")) { prefix = "QUO-CO"; } 
         else if (docText.includes("รับเงิน") || docText.includes("เสร็จ")) { prefix = "REC-CO"; } 
@@ -404,6 +437,25 @@
         .catch(err => console.log("ไม่สามารถดึงเลขที่เอกสารอัตโนมัติได้"));
     }
 
+    // ปรับปรุงฟังก์ชัน: ล้างค่าบนกระดาษทั้งหมดและรันเลขบิลใหม่เมื่อกด "ทำเอกสารใหม่"
+    function createNewDocument() {
+        if(!confirm("คุณต้องการล้างหน้าจอเพื่อเริ่มทำเอกสารใบใหม่ใช่หรือไม่?")) return;
+        
+        document.getElementById('customer-name').value = "";
+        document.getElementById('customer-address').value = "";
+        document.getElementById('due-date').value = "";
+        document.getElementById('blank-date').checked = false;
+        document.getElementById('doc-date').value = getTodayThai();
+        
+        document.getElementById('items-body').innerHTML = '';
+        addRow();
+        calculateTotal();
+        
+        // วิ่งไปดึงรหัสเลขบิลใหม่ล่าสุดมารองรับทันที
+        fetchNextDocNumber();
+    }
+
+    // ปรับปรุงฟังก์ชันบันทึกคลาวด์: เซฟเสร็จ ล็อกเลขเดิมไว้บนหน้าจอ (ไม่รันเลขใหม่ทับ)
     function saveToCloud() {
         const token = localStorage.getItem("jn_session_token");
         const rawPayload = {
@@ -416,6 +468,8 @@
             grandTotal: document.getElementById('grand-total').innerText,
             items: []
         };
+
+        if(!rawPayload.docNum) { alert("กรุณาระบุเลขที่เอกสารก่อนบันทึกครับ"); return; }
 
         document.querySelectorAll('#items-body tr').forEach(tr => {
             rawPayload.items.push({
@@ -436,52 +490,79 @@
             if (data.authError) { alert(data.message); logout(); }
             else if (data.success) { 
                 alert("☁️ ออนไลน์: " + data.message); 
-                // บันทึกเสร็จให้รันเลขบิลถัดไปรอเลย
-                fetchNextDocNumber();
+                // ค้างเลขเดิมไว้ให้บอยทำงานต่อได้อิสระ ไม่ดึงเลขใหม่มารันตัดหน้า
             }
             else { alert("เกิดข้อผิดพลาด: " + data.message); }
         })
         .catch(err => alert("ไม่สามารถบันทึกออนไลน์ได้ในขณะนี้"));
     }
 
-    function loadFromCloud() {
+    // ฟังก์ชันใหม่: ค้นหาเอกสารอัจฉริยะแบบป๊อปอัปรายการเลือก
+    function searchFromCloud() {
         const token = localStorage.getItem("jn_session_token");
-        const docNum = document.getElementById('doc-num').value;
-        if(!docNum) { alert("กรุณากรอกเลขที่เอกสารที่ต้องการค้นหาก่อนครับ"); return; }
+        const query = document.getElementById('search-query').value;
+        if(!query) { alert("กรุณากรอกคำค้นหา (เช่น ชื่อลูกค้า หรือบางส่วนของเลขบิล) ก่อนครับ"); return; }
 
         fetch(APPS_SCRIPT_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "load", token: token, docNum: docNum })
+            body: JSON.stringify({ action: "search_docs", token: token, query: query })
         })
         .then(res => res.json())
         .then(data => {
             if (data.authError) { alert(data.message); logout(); }
             else if (data.success) {
-                const cloudData = data.data;
-                document.getElementById('docType').innerText = cloudData.docType || "ใบเสนอราคา";
-                document.getElementById('doc-num').value = cloudData.docNum || "";
-                document.getElementById('doc-date').value = cloudData.docDate || "";
-                document.getElementById('due-date').value = cloudData.dueDate || "";
-                document.getElementById('customer-name').value = cloudData.customerName || "";
-                document.getElementById('customer-address').value = cloudData.customerAddress || "";
-
-                const tbody = document.getElementById('items-body');
+                const tbody = document.getElementById('search-results-body');
                 tbody.innerHTML = '';
                 
-                if(cloudData.items && cloudData.items.length > 0) {
-                    cloudData.items.forEach(item => addRow(item));
-                } else {
-                    addRow(); 
+                if (data.results.length === 0) {
+                    alert("❌ ไม่พบข้อมูลเอกสารที่ตรงกับคำค้นหานี้บนคลาวด์ครับ");
+                    return;
                 }
-                updateDocTypeSync(false); // ใส่ false เพื่อไม่ให้ไปรันเลขทับไฟล์ที่โหลดมา
-                calculateTotal();
-                alert("☁️ ออนไลน์: ดึงข้อมูลสำเร็จเรียบร้อย!");
-            } else {
-                alert("❌ " + data.message);
+                
+                // เขียนข้อมูลใส่ป๊อปอัปตารางผลลัพธ์
+                data.results.forEach(doc => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${doc.docNum}</strong></td>
+                        <td>${doc.docType}</td>
+                        <td>${doc.customerName}</td>
+                        <td style="color:#1e3a8a; font-weight:bold;">${doc.grandTotal}</td>
+                    `;
+                    // เมื่อคลิกที่แถว จะทำการโหลดข้อมูลเข้าหน้าใบเสนอราคาทันที
+                    tr.onclick = function() {
+                        loadSelectedDoc(JSON.parse(doc.rawData));
+                        document.getElementById('search-popup-box').style.display = 'none';
+                    };
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('search-popup-box').style.display = 'block';
             }
         })
-        .catch(err => alert("ไม่สามารถเชื่อมต่อคลาวด์ได้ในขณะนี้"));
+        .catch(err => alert("เกิดข้อผิดพลาดในการเชื่อมต่อคลาวด์"));
+    }
+
+    // ฟังก์ชันฉีดข้อมูลจากประวัติที่เลือกเข้าสู่หน้ากระดาษ
+    function loadSelectedDoc(cloudData) {
+        document.getElementById('docType').innerText = cloudData.docType || "ใบเสนอราคา";
+        document.getElementById('doc-num').value = cloudData.docNum || "";
+        document.getElementById('doc-date').value = cloudData.docDate || "";
+        document.getElementById('due-date').value = cloudData.dueDate || "";
+        document.getElementById('customer-name').value = cloudData.customerName || "";
+        document.getElementById('customer-address').value = cloudData.customerAddress || "";
+
+        const tbody = document.getElementById('items-body');
+        tbody.innerHTML = '';
+        
+        if(cloudData.items && cloudData.items.length > 0) {
+            cloudData.items.forEach(item => addRow(item));
+        } else {
+            addRow(); 
+        }
+        updateDocTypeSync(false); // ปิดแฟล็กส่งสัญญาณไม่ให้ไปรันเลขทับบิลที่โหลดมาแก้ไข
+        calculateTotal();
+        alert("🔓 โดลดข้อมูลเอกสารเลขที่ " + cloudData.docNum + " เข้าสู่หน้าจอเรียบร้อย!");
     }
 
     function checkCustomUnit(selectEl) {
@@ -516,7 +597,6 @@
         return d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear() + 543);
     }
 
-    // แก้ไขฟังก์ชันซิงก์หัวบิล ให้คำนวณเลขที่อัตโนมัติเมื่อมีการพิมพ์เปลี่ยนประเภทบิล
     function updateDocTypeSync(shouldFetchNum = true) {
         const docText = document.getElementById('docType').innerText;
         const subTitle = document.getElementById('docSubTitle');
@@ -534,7 +614,6 @@
             sigLeft.value = "ผู้รับสินค้า / บริการ"; sigRight.value = "ผู้ออกเอกสาร";
         }
 
-        // ดึงเลขที่เอกสารชุดใหม่ของแต่ละประเภทบิล
         if(shouldFetchNum) {
             fetchNextDocNumber();
         }
@@ -770,12 +849,11 @@
             { wch: 15 }  
         ];
 
-        const wb = document.getElementById('items-body') ? XLSX.utils.book_new() : null;
-        if(wb) {
-            XLSX.utils.book_append_sheet(wb, ws, "Document");
-            const fileName = (docNum || "Document") + ".xlsx";
-            XLSX.writeFile(wb, fileName);
-        }
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Document");
+
+        const fileName = (docNum || "Document") + ".xlsx";
+        XLSX.writeFile(wb, fileName);
     }
 
     window.onload = function() {
@@ -786,7 +864,6 @@
             document.getElementById('docType').innerText = "ใบเสนอราคา";
         }
         
-        // ถ้าล็อกอินค้างไว้อยู่แล้ว ให้ดึงเลขที่เอกสารเริ่มต้นมาแสดงเลย
         if(isLogged) {
             fetchNextDocNumber();
         }
@@ -797,6 +874,11 @@
 
         document.getElementById("pass-input").addEventListener("keypress", function(e){
             if(e.key === "Enter") submitLogin();
+        });
+        
+        // ผูกปุ่ม Enter สำหรับการใช้งานในช่องค้นหาด้านบน
+        document.getElementById("search-query").addEventListener("keypress", function(e){
+            if(e.key === "Enter") searchFromCloud();
         });
     };
 </script>
