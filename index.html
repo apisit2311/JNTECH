@@ -421,6 +421,7 @@
         
         if (docText.includes("เสนอราคา")) { prefix = "QUO-CO"; } 
         else if (docText.includes("รับเงิน") || docText.includes("เสร็จ")) { prefix = "REC-CO"; } 
+        else if (docText.includes("ส่งสินค้า") || docText.includes("แจ้งหนี้")) { prefix = "DLV-CO"; }
         else { prefix = "INV-CO"; }
 
         fetch(APPS_SCRIPT_URL, {
@@ -609,6 +610,9 @@
         } else if (docText.includes("รับเงิน") || docText.includes("เสร็จ")) {
             subTitle.value = "(RECEIPT)";
             sigLeft.value = "ผู้ชำระเงิน"; sigRight.value = "ผู้รับเงิน";
+        } else if (docText.includes("ส่งสินค้า") || docText.includes("แจ้งหนี้")) {
+            subTitle.value = "(INVOICE / DELIVERY ORDER)";
+            sigLeft.value = "ผู้รับสินค้า / บริการ"; sigRight.value = "ผู้ส่งสินค้า / ผู้ออกเอกสาร";
         } else {
             subTitle.value = "(INVOICE)";
             sigLeft.value = "ผู้รับสินค้า / บริการ"; sigRight.value = "ผู้ออกเอกสาร";
